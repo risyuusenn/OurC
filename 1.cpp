@@ -179,6 +179,7 @@ class Scanner {
     } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
       token = ReadWhole_Symbol();
     } else if (current_char == EOF) {
+      cout << "success";
       token = Token(TokenType::END_OF_FILE, current_char);  
     } 
 
@@ -200,14 +201,20 @@ class Parser {
 };
 
 
-int main() {
-  cin >> uTestNum;  // Project 1 要求：讀取測試編號
 
+void Test() {
   Scanner scanner;
   Token token;
-  while (true) {
+  while (token.type != TokenType::END_OF_FILE) {
     token = scanner.GetNextToken();
     cout << "type : " << int(token.type) << "\n";
     cout << "value : "<<token.value << "\n";
   }
+}
+
+
+int main() {
+  cin >> uTestNum;  // Project 1 要求：讀取測試編號
+
+  Test();
 }
