@@ -70,7 +70,6 @@ class Scanner {
   int current_line = 1;
   int current_column = 0;
 
-  // 要特地處理 EOF 嗎?
   // 自定義GetNextChar()，會自動維護 current_行列 數值。
   char GetNextChar() {
     if (current_char == '\n') {  // 若前一個char是'\n'
@@ -179,7 +178,6 @@ class Scanner {
     } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
       token = ReadWhole_Symbol();
     } else if (current_char == EOF) {
-      cout << "success";
       token = Token(TokenType::END_OF_FILE, current_char);  
     } 
 
@@ -199,7 +197,6 @@ class Scanner {
 class Parser {
   
 };
-
 
 
 void Test() {
