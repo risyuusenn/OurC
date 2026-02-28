@@ -1,38 +1,40 @@
 #include <iostream>  // cin.peek()
 #include <string>
+#include <vector>
 #include <cctype>  // isspace(), isdigit(), isalpha()
 
 using namespace std;
 
 int uTestNum = -1;  // Project 1 要求之 file-scope variable
 
-
-enum TokenType {
+enum class TokenType {
   EMPTY,  // 預設值
   IDENT,  // Identifiers
-  INT, FLOAT,  // 
-  // symbol
-  ARITH_OP,  // Arithmetic Operator: + - * /
-  BOOL_OP,  // Boolean Operator: = <> > < >= <=
-  L_PAREN, R_PAREN,  // ( )
-  ASSIGN, SEMICOLON,  // := ;
-  
+  INT, 
+  FLOAT,
+  SYMBOL,  // 各種 符號 or 運算子
   QUIT,  // quit 
   END_OF_FILE,  // EOF
-  UNKNOWN  // 未知
 };
 
-enum ExceptionType {
-  
+// OurC 符號Token字典
+vector<string> Symbol_Dictionary = {"+", "-", "*", "/", ":=", ";", "=", "<>", "<", ">", "<=", ">=", "(", ")"};
+
+enum class ExceptionType {
+  EMPTY_ERR,  // 預設值
+  LEXICAL_ERR,
+  SYNTACTIC_ERR,
+  SEMANTIC_ERR
 };
+
 
 class Token {
- private:
+ public:
   TokenType type;
   string value;  // token的字串內容
- public:
+
   Token() {
-    type = EMPTY;
+    type = TokenType::EMPTY;
     value = "";
   }
 
@@ -45,6 +47,20 @@ class Token {
     this->type = type;
     this->value = string(1, value);  // char轉string
   }
+};
+
+
+class OurException {
+ public:
+  ExceptionType error_type;
+  string error_msg;
+
+  OurException() {
+    error_type = ExceptionType::EMPTY_ERR;
+    error_msg = "???";
+  } 
+
+
 };
 
 
@@ -93,7 +109,7 @@ class Scanner {
       token_string += current_char;
       next_char = cin.peek();
     }
-    return Token(IDENT, token_string);
+    return Token(TokenType::IDENT, token_string);
   }
 
   Token ReadWhole_NUM() {
@@ -116,51 +132,55 @@ class Scanner {
     }
     // 回傳token
     if (has_dot) {
-      return Token(FLOAT, token_string);
+      return Token(TokenType::FLOAT, token_string);
     }
-    return Token(INT, token_string);
+    return Token(TokenType::INT, token_string);
   }
 
-  // 檢驗token的第一個char，是否可能成為合法 符號token
-  bool MayBeSymbol(const char & ch) {
-    switch (ch) {
-      case '+': case '-': case '*': case '/': 
-      case '(': case ')':                     
-      case ':': case ';':                    
-      case '=': case '<': case '>':                                    
+  // 查Symbol_Dictionary字典，檢驗此token是否可能成為合法symbol_token
+  bool MayBeSymbol(const string & token_string) {
+    for (const auto & symbol_token : Symbol_Dictionary) {  // 查Symbol_Dictionary
+      if (symbol_token.size() < token_string.size()) {  // 此symbol_token長度不足，跳過，繼續查下一個symbol_token
+        continue;
+      } 
+      // 檢查token是否符合此symbol_token
+      bool may_be_symbol = true;
+      for (int t = 0; t < token_string.size(); t++) {
+        if (token_string[t] != symbol_token[t]) {
+          may_be_symbol = false;
+        }
+      }
+      if (may_be_symbol) {
         return true;
-      default:
-        return false;
+      }
     }
+    return false;  // 沒找到任何符合的symbol_token
   }
 
   Token ReadWhole_Symbol() {
     string token_string = {current_char};  // token的第一個char
-    if (current_char == ':') {
-      if (cin.peek() == '=') {  // :=
-        current_char = GetNextChar();
-        token_string += current_char;
-        return Token(ASSIGN, token_string);
-      } else {  // :
-
-      }
+    while (MayBeSymbol(token_string + (char)cin.peek())) {
+      current_char = GetNextChar();
+      token_string += current_char;
     }
+    return Token(TokenType::SYMBOL, token_string);
   }
 
  public:
+  Scanner() {}
+
   Token GetNextToken() {
-    current_char = GetNextNonWhiteChar();  // 此token的第一個char
+    current_char = GetNextNonWhiteChar();  // 讀取此token的第一個char
     Token token;
     if (isalpha(current_char) || current_char == '_') {  // IDENT
       token = ReadWhole_IDENT();
-    } else if (isdigit(current_char)) {  // NUM
+    } else if (isdigit(current_char) || current_char == '.') {  // NUM
       token = ReadWhole_NUM();
+    } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
+      token = ReadWhole_Symbol();
     } else if (current_char == EOF) {
-      token = Token(END_OF_FILE, current_char);  // Symbol 符號
-    } else if (MayBeSymbol(current_char)) {
-
-    }
-
+      token = Token(TokenType::END_OF_FILE, current_char);  
+    } 
 
     return token;
   }
@@ -182,6 +202,12 @@ class Parser {
 
 int main() {
   cin >> uTestNum;  // Project 1 要求：讀取測試編號
-  
-  
+
+  Scanner scanner;
+  Token token;
+  while (true) {
+    token = scanner.GetNextToken();
+    cout << "type : " << int(token.type) << "\n";
+    cout << "value : "<<token.value << "\n";
+  }
 }
