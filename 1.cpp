@@ -1,5 +1,6 @@
 #include <iostream>  // cin.peek()
 #include <string>
+#include <sstream>  
 #include <vector>
 #include <cctype>  // isspace(), isdigit(), isalpha()
 
@@ -60,7 +61,14 @@ class OurException {
     error_msg = "???";
   } 
 
-
+  OurException(ExceptionType error_type, char first_char) {
+    this->error_type = error_type;
+    stringstream ss;
+    if (error_type == ExceptionType::LEXICAL_ERR) {
+      ss << "Unrecognized token with first char : '" << first_char << "'\n";
+    } 
+    this->error_msg = ss.str();
+  } 
 };
 
 
@@ -91,9 +99,7 @@ class Scanner {
     // Åª±¼³æ¦æµù¸Ñ
     if (current_char == '/') {
       if (cin.peek() == '/') {
-        while (current_char != '\n') {
-          current_char = GetNextChar();
-        }
+        IgnoreThisLine();
       }
     }
     return current_char;
@@ -179,8 +185,9 @@ class Scanner {
       token = ReadWhole_Symbol();
     } else if (current_char == EOF) {
       token = Token(TokenType::END_OF_FILE, current_char);  
-    } 
-
+    } else {
+      throw OurException(ExceptionType::LEXICAL_ERR, current_char);
+    }
     return token;
   }
   
@@ -203,7 +210,15 @@ void Test() {
   Scanner scanner;
   Token token;
   while (token.type != TokenType::END_OF_FILE) {
-    token = scanner.GetNextToken();
+    try {
+      token = scanner.GetNextToken();
+    } catch (OurException e) {
+      cout << e.error_msg;
+      if (e.error_type == ExceptionType::LEXICAL_ERR) {
+        scanner.IgnoreThisLine();
+      }
+      continue;
+    }
     cout << "type : " << int(token.type) << "\n";
     cout << "value : "<<token.value << "\n";
   }
