@@ -3,6 +3,7 @@
 #include <sstream>  
 #include <vector>
 #include <cctype>  // isspace(), isdigit(), isalpha()
+#include <map>
 
 using namespace std;
 
@@ -20,6 +21,10 @@ enum class TokenType {
 
 // OurC 符號Token字典
 vector<string> Symbol_Dictionary = {"+", "-", "*", "/", "=", "<>", "<", ">", "<=", ">=", ":=", ";", "(", ")", "//"};
+
+// 已定義變數之memory
+// <變數名稱, 浮點數>
+map<string, float> identifier_mem;
 
 enum class ExceptionType {
   EMPTY_ERR,  // 預設值
@@ -174,30 +179,39 @@ class Scanner {
   Scanner() {}
 
   Token GetNextToken() {
-    current_char = GetNextNonWhiteChar();  // 讀取此token的第一個char
-    Token token;
-    if (isalpha(current_char) || current_char == '_') {  // IDENT
-      token = ReadWhole_IDENT();
-    } else if (isdigit(current_char) || current_char == '.') {  // NUM
-      token = ReadWhole_NUM();
-    } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
-      token = ReadWhole_Symbol();
-      // 例外： 非法":" 沒成功接成 合法":="
-      if (token.value == ":") {
-        token.Clear();
+    try {
+      current_char = GetNextNonWhiteChar();  // 讀取此token的第一個char
+      Token token;
+      if (isalpha(current_char) || current_char == '_') {  // IDENT
+        token = ReadWhole_IDENT();
+      } else if (isdigit(current_char) || current_char == '.') {  // NUM
+        token = ReadWhole_NUM();
+      } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
+        token = ReadWhole_Symbol();
+        // 例外： 非法":" 沒成功接成 合法":="
+        if (token.value == ":") {
+          token.Clear();
+          throw OurException(ExceptionType::LEXICAL_ERR, current_char);
+        }
+        // 忽略單行註解，並重新get token
+        if (token.value == "//") {
+          IgnoreThisLine();
+          token = GetNextToken();
+        }
+      } else if (current_char == EOF) {
+        token = Token(TokenType::END_OF_FILE, current_char);  
+      } else {
         throw OurException(ExceptionType::LEXICAL_ERR, current_char);
       }
-      // 忽略單行註解，並重新get token
-      if (token.value == "//") {
+      return token;
+
+    } catch (OurException e) {
+      cout << e.error_msg;
+      if (e.error_type == ExceptionType::LEXICAL_ERR) {
         IgnoreThisLine();
-        token = GetNextToken();
       }
-    } else if (current_char == EOF) {
-      token = Token(TokenType::END_OF_FILE, current_char);  
-    } else {
-      throw OurException(ExceptionType::LEXICAL_ERR, current_char);
+      return GetNextToken();
     }
-    return token;
   }
   
   // 讀掉(忽略)整行input
@@ -211,7 +225,21 @@ class Scanner {
  
 
 class Parser {
-  
+ private:
+  Scanner scanner;
+  Token lookahead;
+  bool has_lookahead = false;
+
+  Token GetToken() {
+    if (has_lookahead) {
+      has_lookahead = false;
+      return lookahead;
+    } else {
+      return scanner.GetNextToken();
+    }
+  }
+
+
 };
 
 
@@ -219,15 +247,7 @@ void Test() {
   Scanner scanner;
   Token token;
   while (token.type != TokenType::END_OF_FILE) {
-    try {
-      token = scanner.GetNextToken();
-    } catch (OurException e) {
-      cout << e.error_msg;
-      if (e.error_type == ExceptionType::LEXICAL_ERR) {
-        scanner.IgnoreThisLine();
-      }
-      continue;
-    }
+    token = scanner.GetNextToken();
     cout << "type : " << int(token.type) << "\n";
     cout << "value : "<<token.value << "\n";
   }
