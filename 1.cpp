@@ -48,6 +48,11 @@ class Token {
     this->type = type;
     this->value = string(1, value);  // char轉string
   }
+
+  void Clear() {
+    type = TokenType::EMPTY;
+    value = "";
+  }
 };
 
 
@@ -177,6 +182,11 @@ class Scanner {
       token = ReadWhole_NUM();
     } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
       token = ReadWhole_Symbol();
+      // 例外： 非法":" 沒成功接成 合法":="
+      if (token.value == ":") {
+        token.Clear();
+        throw OurException(ExceptionType::LEXICAL_ERR, current_char);
+      }
       // 忽略單行註解，並重新get token
       if (token.value == "//") {
         IgnoreThisLine();
