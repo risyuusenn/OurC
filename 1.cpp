@@ -19,7 +19,7 @@ enum class TokenType {
 };
 
 // OurC 符號Token字典
-vector<string> Symbol_Dictionary = {"+", "-", "*", "/", ":=", ";", "=", "<>", "<", ">", "<=", ">=", "(", ")"};
+vector<string> Symbol_Dictionary = {"+", "-", "*", "/", "=", "<>", "<", ">", "<=", ">=", ":=", ";", "(", ")", "//"};
 
 enum class ExceptionType {
   EMPTY_ERR,  // 預設值
@@ -95,12 +95,6 @@ class Scanner {
     // 讀掉空白字元
     while (isspace(current_char)) {
       current_char = GetNextChar();
-    }
-    // 讀掉單行註解
-    if (current_char == '/') {
-      if (cin.peek() == '/') {
-        IgnoreThisLine();
-      }
     }
     return current_char;
   }
@@ -183,6 +177,11 @@ class Scanner {
       token = ReadWhole_NUM();
     } else if (MayBeSymbol(string(1, current_char))) {  // Symbol 
       token = ReadWhole_Symbol();
+      // 忽略單行註解，並重新get token
+      if (token.value == "//") {
+        IgnoreThisLine();
+        token = GetNextToken();
+      }
     } else if (current_char == EOF) {
       token = Token(TokenType::END_OF_FILE, current_char);  
     } else {
